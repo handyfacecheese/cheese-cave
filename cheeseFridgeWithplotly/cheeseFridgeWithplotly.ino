@@ -14,7 +14,7 @@ IPAddress ip(192, 168, 1, 99);
 // plot.ly setup
 #define nTraces 2
 char *tokens[nTraces] = {"l390r6gozf", "lfb0xc84vx"};
-plotly graph("workshop", "2dzdliqjac", tokens, "filename", nTraces);
+plotly graph("AndyMahoney", "2dzdliqjac", tokens, "filename", nTraces);
 
 // Time interval
 const long interval = 5000;
@@ -80,7 +80,6 @@ void loop()
   }
 
   sendData(currentTemp1, currentHumidity1, currentTemp2, currentHumidity2);
-
   delay(interval);
 }
 
