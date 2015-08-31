@@ -10,7 +10,6 @@ DHT dhtTwo(3, DHT22);
 // Ethernet setup
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 IPAddress ip(192, 168, 1, 99);
-EthernetClient testConnectivity;
 
 // plot.ly setup
 #define nTraces 2
@@ -80,7 +79,6 @@ void loop()
     checkHumidity(pumpTwoPin, currentHumidity2, minHumidity2, maxHumidity2);
   }
 
-  // Send to server if available, otherwise write to log
   sendData(currentTemp1, currentHumidity1, currentTemp2, currentHumidity2);
 
   delay(interval);
@@ -133,18 +131,8 @@ boolean sendData(float currentTemp1, float currentHumidity1, float currentTemp2,
   }
 
   // Send data to plot.ly
-  if (!testConnectivity.connect("plot.ly", 80))
+  if (graph.client.connected())
   {
-    Serial.println(F("Could not connect to plot.ly"));
-    startEthernet();
-  }
-  else
-  {
-    Serial.println(F("Confirmed connectivity to plot.ly!"));
-    testConnectivity.flush();
-    testConnectivity.stop();
-    delay(500);
-
     Serial.println(F("Sending data to plot.ly ..."));
     int fridgeOne = 0, fridgeTwo = 0, pumpOne = 0, pumpTwo = 0;
 
@@ -157,6 +145,11 @@ boolean sendData(float currentTemp1, float currentHumidity1, float currentTemp2,
     graph.plot(millis(), currentTemp1, tokens[0]);
     graph.plot(millis(), currentHumidity1, tokens[1]);
   }
+  else
+  {
+    Serial.println(F("Not connected!"));
+    startEthernet();
+  }
 }
 
 void startEthernet()
@@ -165,8 +158,10 @@ void startEthernet()
   Ethernet.begin(mac, ip);
   delay(500);
 
+  EthernetClient testConnectivity;
+  
   // graph.init and openStream contain while loops which won't ever fail on connecting to plot.ly
-  if (!testConnectivity.connect("plot.ly", 80) || !testConnectivity.connect("arduino.plot.ly", 80))
+  if (!testConnectivity.connect("plot.ly", 80))
   {
     Serial.println(F("Could not connect to plot.ly"));
   }
@@ -174,7 +169,6 @@ void startEthernet()
   {
     testConnectivity.flush();
     testConnectivity.stop();
-    delay(500);
     Serial.println(F("Initialising connection to plot.ly ..."));
     if (graph.init())    { graph.openStream(); }
   }
