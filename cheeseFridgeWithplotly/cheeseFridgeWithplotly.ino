@@ -10,7 +10,7 @@ DHT dhtTwo(3, DHT22);
 // Ethernet setup
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 IPAddress ip(192, 168, 1, 99);
-EthernetClient client;
+EthernetClient testConnectivity;
 
 // plot.ly setup
 #define nTraces 2
@@ -18,7 +18,7 @@ char *tokens[nTraces] = {"l390r6gozf", "lfb0xc84vx"};
 plotly graph("workshop", "2dzdliqjac", tokens, "filename", nTraces);
 
 // Time interval
-const long interval = 10000;
+const long interval = 5000;
 
 // Relay pins
 const int fridgeOnePin = 5;
@@ -133,7 +133,7 @@ boolean sendData(float currentTemp1, float currentHumidity1, float currentTemp2,
   }
 
   // Send data to plot.ly
-  if (!client.connect("plot.ly", 80))
+  if (!testConnectivity.connect("plot.ly", 80))
   {
     Serial.println(F("Could not connect to plot.ly"));
     startEthernet();
@@ -141,30 +141,21 @@ boolean sendData(float currentTemp1, float currentHumidity1, float currentTemp2,
   else
   {
     Serial.println(F("Confirmed connectivity to plot.ly!"));
+    testConnectivity.flush();
+    testConnectivity.stop();
     delay(500);
-    client.stop();
 
     Serial.println(F("Sending data to plot.ly ..."));
     int fridgeOne = 0, fridgeTwo = 0, pumpOne = 0, pumpTwo = 0;
 
     // Relay is HIGH when it's off, LOW when it's on
-    if (digitalRead(fridgeOnePin) == LOW)  {
-      fridgeOne = 1;
-    }
-    if (digitalRead(pumpOnePin) == LOW)    {
-      pumpOne = 1;
-    }
-    if (digitalRead(fridgeTwoPin) == LOW)  {
-      fridgeTwo = 1;
-    }
-    if (digitalRead(pumpTwoPin) == LOW)    {
-      pumpTwo = 1;
-    }
+    if (digitalRead(fridgeOnePin) == LOW)  { fridgeOne = 1; }
+    if (digitalRead(pumpOnePin) == LOW)    { pumpOne = 1; }
+    if (digitalRead(fridgeTwoPin) == LOW)  { fridgeTwo = 1; }
+    if (digitalRead(pumpTwoPin) == LOW)    { pumpTwo = 1; }
 
     graph.plot(millis(), currentTemp1, tokens[0]);
     graph.plot(millis(), currentHumidity1, tokens[1]);
-
-    delay(500);
   }
 }
 
@@ -172,9 +163,19 @@ void startEthernet()
 {
   Serial.println(F("Connecting ethernet ..."));
   Ethernet.begin(mac, ip);
-  delay(5000);
+  delay(500);
 
-  Serial.println(F("Connecting plot.ly ..."));
-  graph.init();
-  graph.openStream();
+  // graph.init and openStream contain while loops which won't ever fail on connecting to plot.ly
+  if (!testConnectivity.connect("plot.ly", 80) || !testConnectivity.connect("arduino.plot.ly", 80))
+  {
+    Serial.println(F("Could not connect to plot.ly"));
+  }
+  else
+  {
+    testConnectivity.flush();
+    testConnectivity.stop();
+    delay(500);
+    Serial.println(F("Initialising connection to plot.ly ..."));
+    if (graph.init())    { graph.openStream(); }
+  }
 }
